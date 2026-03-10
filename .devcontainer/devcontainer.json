@@ -1,0 +1,33 @@
+{
+  "name": "graphxray-dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+   "runArgs": ["--init"],
+  "remoteUser": "node",
+   "updateRemoteUserUID": false,
+   "mounts": [
+     "source=graphxray-node-modules,target=/workspaces/graphxray/node_modules,type=volume",
+     "source=graphxray-npm-cache,target=/home/node/.npm,type=volume"
+   ],
+  "postCreateCommand": "npm ci",
+   "forwardPorts": [4000],
+   "portsAttributes": {
+     "4000": {
+       "label": "Graph X-Ray dev server",
+       "onAutoForward": "notify"
+     }
+   },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

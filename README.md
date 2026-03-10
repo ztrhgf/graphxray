@@ -132,6 +132,12 @@ Scroll down in the Graph X-Ray panel to view the new stack trace.
 - Install [Node.js](https://nodejs.org/) (which includes npm)
 - Run `npm install` to install dependencies
 
+### Develop in a VS Code Dev Container
+
+If you are using the VS Code Dev Containers feature, reopen the repository in the container from the Command Palette. The container installs dependencies with `npm ci` on first create, keeps `node_modules` in a named Docker volume so Linux container artifacts do not pollute the Windows checkout, and forwards the webpack dev server port automatically.
+
+Run `npm start` inside the container to compile and debug. The development server listens on `http://localhost:4000`.
+
 ### Build the extension
 
 `npm start` to compile and debug
@@ -153,7 +159,7 @@ In the project directory, you can run:
 ### `npm start`
 
 Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Open [http://localhost:4000](http://localhost:4000) to view it in the browser.
 
 The page will reload if you make edits.\
 You will also see any lint errors in the console.
