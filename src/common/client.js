@@ -234,6 +234,95 @@ const getResponseContent = async function (harEntry) {
   return responseContent;
 };
 
+const isBatchEndpoint = function (url = "") {
+  if (!url || typeof url !== "string") {
+    return false;
+  }
+
+  return /\/\$batch(?:\?|$)/i.test(url) || /management\.azure\.com\/batch(?:\?|$)/i.test(url);
+};
+
+const parseBatchRequestResponse = function (requestBody, responseContent, parentUrl) {
+  if (!requestBody || !responseContent) {
+    return null;
+  }
+
+  try {
+    const requestData = JSON.parse(requestBody);
+    const responseData = JSON.parse(responseContent);
+
+    if (!Array.isArray(requestData.requests) || !Array.isArray(responseData.responses)) {
+      return null;
+    }
+
+    const responseMap = new Map();
+    responseData.responses.forEach((response) => {
+      if (response && response.id) {
+        responseMap.set(String(response.id), response);
+      }
+    });
+
+    const matched = [];
+    requestData.requests.forEach((batchRequest) => {
+      if (!batchRequest || !batchRequest.id) {
+        return;
+      }
+
+      const response = responseMap.get(String(batchRequest.id));
+      if (!response) {
+        return;
+      }
+
+      let requestBodyText = "";
+      if (batchRequest.body !== undefined) {
+        requestBodyText =
+          typeof batchRequest.body === "string"
+            ? batchRequest.body
+            : JSON.stringify(batchRequest.body);
+      }
+
+      let responseBodyText = "";
+      if (response.body !== undefined) {
+        responseBodyText =
+          typeof response.body === "string"
+            ? response.body
+            : JSON.stringify(response.body);
+      }
+
+      matched.push({
+        id: String(batchRequest.id),
+        method: (batchRequest.method || "GET").toUpperCase(),
+        url: batchRequest.url || "",
+        requestBody: requestBodyText,
+        responseStatus: response.status,
+        responseBody: responseBodyText,
+        parentBatchUrl: parentUrl,
+      });
+    });
+
+    return matched;
+  } catch (error) {
+    console.log("Error parsing batch request/response:", error);
+    return null;
+  }
+};
+
+const resolveSubrequestUrl = function (baseUrl, subrequestUrl = "") {
+  if (!subrequestUrl) {
+    return baseUrl;
+  }
+
+  if (/^https?:\/\//i.test(subrequestUrl)) {
+    return subrequestUrl;
+  }
+
+  const baseWithoutBatch = baseUrl
+    .replace(/\/\$batch(?:\?.*)?$/i, "")
+    .replace(/\/batch(?:\?.*)?$/i, "");
+
+  const normalizedPath = subrequestUrl.startsWith("/") ? subrequestUrl : `/${subrequestUrl}`;
+  return `${baseWithoutBatch}${normalizedPath}`;
+};
 const getBatchCodeSnippets = async function (snippetLanguage, requestBody, baseUrl) {
   console.log("Generating code snippets for batch request");
   
@@ -284,13 +373,19 @@ const getBatchCodeSnippets = async function (snippetLanguage, requestBody, baseU
   }
 };
 
-const getCodeView = async function (snippetLanguage, request, version, harEntry = null) {
+const getCodeView = async function (snippetLanguage, request, version, harEntry = null, overrides = {}, metadata = {}) {
   if (["OPTIONS"].includes(request.method)) {
     return null;
   }
   console.log("GetCodeView", snippetLanguage, request, harEntry);
-  const requestBody = await getRequestBody(request);
-  const responseContent = harEntry ? await getResponseContent(harEntry) : "";
+  const requestBody = Object.prototype.hasOwnProperty.call(overrides, "requestBody")
+    ? overrides.requestBody
+    : await getRequestBody(request);
+  const responseContent = Object.prototype.hasOwnProperty.call(overrides, "responseContent")
+    ? overrides.responseContent
+    : harEntry
+      ? await getResponseContent(harEntry)
+      : "";
   
   let code = null;
   let batchCodeSnippets = [];
@@ -320,13 +415,26 @@ const getCodeView = async function (snippetLanguage, request, version, harEntry 
   }
   
   const codeView = {
+    method: request.method,
+    url: request.url,
     displayRequestUrl: request.method + " " + request.url,
     requestBody: requestBody,
     responseContent: responseContent,
     code: code,
     batchCodeSnippets: batchCodeSnippets, // Add batch code snippets to the result
+    ...metadata,
   };
   console.log("CodeView", codeView);
   return codeView;
 };
-export { getPowershellCmd, getRequestBody, getResponseContent, getCodeView, getBatchCodeSnippets };
+export {
+  getPowershellCmd,
+  getRequestBody,
+  getResponseContent,
+  getCodeView,
+  getBatchCodeSnippets,
+  isBatchEndpoint,
+  parseBatchRequestResponse,
+  resolveSubrequestUrl,
+};
+

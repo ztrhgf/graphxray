@@ -4,7 +4,14 @@ import { CodeView } from "../components/CodeView";
 import { AppHeader } from "../components/AppHeader";
 import { FontSizes } from "@fluentui/theme";
 import { getTheme } from "@fluentui/react";
-import { getCodeView } from "../common/client.js";
+import {
+  getCodeView,
+  getRequestBody,
+  getResponseContent,
+  isBatchEndpoint,
+  parseBatchRequestResponse,
+  resolveSubrequestUrl,
+} from "../common/client.js";
 import { isAllowedDomain } from "../common/domains.js";
 import { Dropdown } from "@fluentui/react/lib/Dropdown";
 import { Toggle } from "@fluentui/react/lib/Toggle";
@@ -19,32 +26,42 @@ const dropdownStyles = {
   dropdown: { width: 300 },
 };
 
-const options = [
+const languageOptions = [
   { key: "powershell", text: "PowerShell", fileExt: "ps1" },
   { key: "python", text: "Python", fileExt: "py" },
   { key: "c#", text: "C#", fileExt: "cs" },
   { key: "javascript", text: "JavaScript", fileExt: "js" },
   { key: "java", text: "Java", fileExt: "java" },
   { key: "objective-c", text: "Objective-C", fileExt: "c" },
-  { key: "go", text: "Go", fileExt: "go" },  
+  { key: "go", text: "Go", fileExt: "go" },
+];
+
+const methodOptions = [
+  { key: "ALL", text: "All Methods" },
+  { key: "GET", text: "GET" },
+  { key: "POST", text: "POST" },
+  { key: "PUT", text: "PUT" },
+  { key: "PATCH", text: "PATCH" },
+  { key: "DELETE", text: "DELETE" },
+  { key: "HEAD", text: "HEAD" },
+  { key: "OPTIONS", text: "OPTIONS" },
 ];
 
 class DevTools extends React.Component {
   constructor() {
     super();
-    // Load ultraXRayMode from localStorage, default to false
-    const savedUltraXRayMode = localStorage.getItem('graphxray-ultraXRayMode');
+    const savedUltraXRayMode = localStorage.getItem("graphxray-ultraXRayMode");
     const ultraXRayMode = savedUltraXRayMode ? JSON.parse(savedUltraXRayMode) : false;
-    
+
     this.state = {
       stack: [],
       snippetLanguage: "powershell",
       ultraXRayMode: ultraXRayMode,
+      methodFilter: "ALL",
     };
   }
 
   componentDidMount() {
-    // Add listener when component mounts
     this.addListener();
     this.addListenerGraph();
   }
@@ -55,7 +72,7 @@ class DevTools extends React.Component {
 
   saveScript = () => {
     const script = this.getSaveScriptContent();
-    const languageOpt = options.filter((opt) => {
+    const languageOpt = languageOptions.filter((opt) => {
       return opt.key === this.state.snippetLanguage;
     });
     const fileName = "GraphXRaySession." + languageOpt[0].fileExt;
@@ -77,6 +94,17 @@ class DevTools extends React.Component {
     return script;
   }
 
+  getFilteredStack = () => {
+    if (this.state.methodFilter === "ALL") {
+      return this.state.stack;
+    }
+
+    return this.state.stack.filter((request) => {
+      const method = request.method || (request.displayRequestUrl || "").split(" ")[0];
+      return method === this.state.methodFilter;
+    });
+  };
+
   downloadFile(content, filename) {
     const element = document.createElement("a");
     const file = new Blob([content], {
@@ -93,27 +121,25 @@ class DevTools extends React.Component {
       return;
     }
     window.chrome.webview.addEventListener("message", (event) => {
-      console.log("Got message from host!");
-      console.log(event.data);
       const msg = JSON.parse(event.data);
       if (msg.eventName === "GraphCall") {
-        console.log("Showing graph call.");
         this.showRequest(msg);
       }
     });
   }
 
-  async addRequestToStack(request, version, harEntry = null) {
-    console.log("DevTools - addRequestToStack called with:", request, version, harEntry);
+  async addRequestToStack(request, version, harEntry = null, overrides = {}, metadata = {}) {
     const codeView = await getCodeView(
       this.state.snippetLanguage,
       request,
       version,
-      harEntry
+      harEntry,
+      overrides,
+      metadata
     );
-    console.log("DevTools - getCodeView returned:", codeView);
+
     if (codeView) {
-      this.setState({ stack: [...this.state.stack, codeView] });
+      this.setState((prevState) => ({ stack: [...prevState.stack, codeView] }));
     }
   }
 
@@ -121,6 +147,7 @@ class DevTools extends React.Component {
     if (!chrome.devtools) {
       return;
     }
+
     chrome.devtools.network.onRequestFinished.addListener(async (harEntry) => {
       try {
         if (
@@ -129,15 +156,8 @@ class DevTools extends React.Component {
           isAllowedDomain(harEntry.request.url, this.state.ultraXRayMode)
         ) {
           const request = harEntry.request;
-
-          // Pass both the request and the harEntry (which has getContent method)
           request._harEntry = harEntry;
-
-          try {
-            this.showRequest(request, harEntry);
-          } catch (error) {
-            console.log(error);
-          }
+          await this.showRequest(request, harEntry);
         }
       } catch (error) {
         console.log(error);
@@ -146,14 +166,48 @@ class DevTools extends React.Component {
   }
 
   async showRequest(request, harEntry = null) {
-    console.log("DevTools - showRequest called with:", request, harEntry);
-    if (request.url.includes("/$batch")) {
-      console.log("Processing batch request - keeping as single unit");
-      // For batch requests, treat them as a single unit to preserve request/response matching
-      await this.addRequestToStack(request, "", harEntry);
-    } else {
-      await this.addRequestToStack(request, "", harEntry);
+    if (isBatchEndpoint(request.url)) {
+      try {
+        const batchRequestBody = await getRequestBody(request);
+        const batchResponseContent = harEntry ? await getResponseContent(harEntry) : "";
+        const batchItems = parseBatchRequestResponse(
+          batchRequestBody,
+          batchResponseContent,
+          request.url
+        );
+
+        if (batchItems && batchItems.length > 0) {
+          for (const batchItem of batchItems) {
+            const fullUrl = resolveSubrequestUrl(request.url, batchItem.url);
+            const syntheticRequest = {
+              method: batchItem.method,
+              url: fullUrl,
+            };
+
+            await this.addRequestToStack(
+              syntheticRequest,
+              "",
+              null,
+              {
+                requestBody: batchItem.requestBody || "",
+                responseContent: batchItem.responseBody || "",
+              },
+              {
+                isBatchDerived: true,
+                batchRequestId: batchItem.id,
+                batchParentUrl: batchItem.parentBatchUrl,
+                responseStatus: batchItem.responseStatus,
+              }
+            );
+          }
+          return;
+        }
+      } catch (error) {
+        console.log("Batch expansion failed, falling back to parent row:", error);
+      }
     }
+
+    await this.addRequestToStack(request, "", harEntry);
   }
 
   onLanguageChange = (e, option) => {
@@ -161,13 +215,19 @@ class DevTools extends React.Component {
     this.clearStack();
   };
 
+  onMethodFilterChange = (e, option) => {
+    this.setState({ methodFilter: option.key });
+  };
+
   onUltraXRayToggle = (e, checked) => {
     this.setState({ ultraXRayMode: checked });
-    // Save to localStorage
-    localStorage.setItem('graphxray-ultraXRayMode', JSON.stringify(checked));
-    this.clearStack(); // Clear the stack when toggling mode
+    localStorage.setItem("graphxray-ultraXRayMode", JSON.stringify(checked));
+    this.clearStack();
   };
+
   render() {
+    const filteredStack = this.getFilteredStack();
+
     return (
       <div className="App" style={{ fontSize: FontSizes.size12 }}>
         <Layer>
@@ -199,27 +259,40 @@ class DevTools extends React.Component {
               browser tab. Code conversions are only available for published Graph APIs.
               Turn on <strong>Ultra X-Ray</strong> mode to see all API calls (open a <a href="https://github.com/merill/graphxray/issues" target="_blank" rel="noreferrer">GitHub issue</a> if there are admin portals or blades that are not being captured).
             </p>
-            <div style={{ 
-              display: "flex", 
-              alignItems: "flex-end", 
-              gap: "20px",
-              flexWrap: "wrap" 
-            }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                gap: "20px",
+                flexWrap: "wrap",
+              }}
+            >
               <Dropdown
                 placeholder="Select an option"
                 label="Select language"
-                options={options}
+                options={languageOptions}
                 styles={dropdownStyles}
                 defaultSelectedKey={this.state.snippetLanguage}
                 onChange={this.onLanguageChange}
               />
-              
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "8px" // Align with dropdown bottom margin
-              }}>
+
+              <Dropdown
+                placeholder="All methods"
+                label="HTTP method"
+                options={methodOptions}
+                styles={dropdownStyles}
+                selectedKey={this.state.methodFilter}
+                onChange={this.onMethodFilterChange}
+              />
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                }}
+              >
                 <Toggle
                   label="Ultra X-Ray"
                   checked={this.state.ultraXRayMode}
@@ -228,15 +301,15 @@ class DevTools extends React.Component {
                   offText="Off"
                   styles={{
                     root: { marginBottom: 0 },
-                    label: { fontWeight: "600" }
+                    label: { fontWeight: "600" },
                   }}
                 />
                 <TooltipHost
                   content="Enables ultra mode which allows you to see API calls that are not publicly documented by Microsoft. These are meant for educational purposes. These endpoints should not be used in custom scripts as they are not supported by Microsoft and are only meant for internal use."
                   styles={{
                     root: {
-                      display: "inline-block"
-                    }
+                      display: "inline-block",
+                    },
                   }}
                 >
                   <IconButton
@@ -250,19 +323,19 @@ class DevTools extends React.Component {
                         color: "#666",
                         backgroundColor: "transparent",
                         border: "1px solid #ccc",
-                        borderRadius: "50%"
+                        borderRadius: "50%",
                       },
                       rootHovered: {
                         backgroundColor: "rgba(0, 0, 0, 0.05)",
-                        color: "#333"
-                      }
+                        color: "#333",
+                      },
                     }}
                   />
                 </TooltipHost>
               </div>
             </div>
           </div>
-          {this.state.stack && this.state.stack.length > 0 && (
+          {filteredStack && filteredStack.length > 0 && (
             <div
               style={{
                 boxShadow: theme.effects.elevation16,
@@ -270,7 +343,7 @@ class DevTools extends React.Component {
                 marginBottom: "15px",
               }}
             >
-              {this.state.stack.map((request, index) => (
+              {filteredStack.map((request, index) => (
                 <div
                   key={index}
                   style={{

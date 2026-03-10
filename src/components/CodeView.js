@@ -147,10 +147,28 @@ export const CodeView = ({ request, lightUrl, snippetLanguage }) => {
   // Process batch content if applicable
   const batchData = processBatchContent(request.requestBody, request.responseContent);
 
+  const batchOriginText = request.isBatchDerived
+    ? `Batch item ${request.batchRequestId || "N/A"} from ${request.batchParentUrl || "batch endpoint"}${request.responseStatus ? ` (status ${request.responseStatus})` : ""}`
+    : null;
+
   return (
     <div>
       {request.displayRequestUrl && request.displayRequestUrl.length > 0 && (
         <div>
+          {batchOriginText && (
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#666",
+                marginBottom: "8px",
+                padding: "6px 8px",
+                backgroundColor: "rgba(0, 120, 212, 0.08)",
+                borderRadius: "4px",
+              }}
+            >
+              {batchOriginText}
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}>
             {((request.requestBody && request.requestBody.length > 0) || (request.responseContent && request.responseContent.length > 0)) && (
               <IconButton
@@ -649,3 +667,6 @@ export const CodeView = ({ request, lightUrl, snippetLanguage }) => {
     </div>
   );
 };
+
+
+

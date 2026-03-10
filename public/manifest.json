@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "version": "1.0.5",
-  "short_name": "Graph X-Ray",
-  "name": "Graph X-Ray",
+  "version": "2.0.0",
+  "short_name": "Microsoft X-Ray",
+  "name": "Microsoft X-Ray",
   "description": "Graph X-Ray converts your Microsoft admin portal clicks into ready-to-use code in PowerShell, C#, Python, and more.",
   "action": {
     "default_title": "Graph X-Ray",
@@ -13,8 +13,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["contentScript.bundle.js"]
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "contentScript.bundle.js"
+      ]
     }
   ],
   "host_permissions": [
@@ -42,7 +47,10 @@
   },
   "options_page": "options.html",
   "devtools_page": "dev.html",
-  "permissions": ["storage", "webRequest"],
+  "permissions": [
+    "storage",
+    "webRequest"
+  ],
   "content_security_policy": {
     "script-src": "self",
     "object-src": "self"

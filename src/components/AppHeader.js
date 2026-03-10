@@ -41,7 +41,7 @@ export const AppHeader = ({ hideSettings }) => {
             fontWeight: 600,
           }}
         >
-          Microsoft Graph X-Ray
+          Microsoft X-Ray
         </div>
       </Stack.Item>
       <Stack.Item grow styles={stackItemStyles}>

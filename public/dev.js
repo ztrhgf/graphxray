@@ -1,4 +1,4 @@
-chrome.devtools.panels.create("Graph X-Ray", null, "/devtools.html", function (panel) {
-    console.log("Graph X-Ray: ", panel);
+chrome.devtools.panels.create("Microsoft X-Ray", null, "/devtools.html", function (panel) {
+    console.log("Microsoft X-Ray: ", panel);
   }
 );
