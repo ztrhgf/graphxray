@@ -6,7 +6,7 @@ import {
 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { IconButton } from "@fluentui/react/lib/Button";
 
-export const CodeView = ({ request, lightUrl, snippetLanguage }) => {
+export const CodeView = ({ request, lightUrl, snippetLanguage, showApiTranslation = false }) => {
   const [isRequestBodyExpanded, setIsRequestBodyExpanded] = useState(false);
   const [hoveredButton, setHoveredButton] = useState(null);
 
@@ -536,7 +536,7 @@ export const CodeView = ({ request, lightUrl, snippetLanguage }) => {
         </div>
       )}
 
-      {request.code && request.code.length > 0 && (
+      {showApiTranslation && request.code && request.code.length > 0 && (
         <div style={{ position: "relative" }}>
           <SyntaxHighlighter
             language={syntaxLanguage}
@@ -589,7 +589,7 @@ export const CodeView = ({ request, lightUrl, snippetLanguage }) => {
       )}
 
       {/* Batch code snippets - show individual code blocks for each request in the batch */}
-      {request.batchCodeSnippets && request.batchCodeSnippets.length > 0 && (
+      {showApiTranslation && request.batchCodeSnippets && request.batchCodeSnippets.length > 0 && (
         <div style={{ marginTop: "15px" }}>
           <div style={{
             fontSize: "16px",

@@ -52,11 +52,16 @@ class DevTools extends React.Component {
     super();
     const savedUltraXRayMode = localStorage.getItem("graphxray-ultraXRayMode");
     const ultraXRayMode = savedUltraXRayMode ? JSON.parse(savedUltraXRayMode) : false;
+    const savedShowApiTranslation = localStorage.getItem("graphxray-showApiTranslation");
+    const showApiTranslation = savedShowApiTranslation
+      ? JSON.parse(savedShowApiTranslation)
+      : false;
 
     this.state = {
       stack: [],
       snippetLanguage: "powershell",
       ultraXRayMode: ultraXRayMode,
+      showApiTranslation: showApiTranslation,
       methodFilter: "ALL",
     };
   }
@@ -225,6 +230,11 @@ class DevTools extends React.Component {
     this.clearStack();
   };
 
+  onShowApiTranslationToggle = (e, checked) => {
+    this.setState({ showApiTranslation: checked });
+    localStorage.setItem("graphxray-showApiTranslation", JSON.stringify(checked));
+  };
+
   render() {
     const filteredStack = this.getFilteredStack();
 
@@ -333,6 +343,55 @@ class DevTools extends React.Component {
                   />
                 </TooltipHost>
               </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                }}
+              >
+                <Toggle
+                  label="Translate to command"
+                  checked={this.state.showApiTranslation}
+                  onChange={this.onShowApiTranslationToggle}
+                  onText="On"
+                  offText="Off"
+                  styles={{
+                    root: { marginBottom: 0 },
+                    label: { fontWeight: "600" },
+                  }}
+                />
+                <TooltipHost
+                  content={`Generates a ${this.state.snippetLanguage} command snippet for each captured API call.`}
+                  styles={{
+                    root: {
+                      display: "inline-block",
+                    },
+                  }}
+                >
+                  <IconButton
+                    iconProps={{ iconName: "Info" }}
+                    title="Translate to command information"
+                    styles={{
+                      root: {
+                        minWidth: "24px",
+                        width: "24px",
+                        height: "24px",
+                        color: "#666",
+                        backgroundColor: "transparent",
+                        border: "1px solid #ccc",
+                        borderRadius: "50%",
+                      },
+                      rootHovered: {
+                        backgroundColor: "rgba(0, 0, 0, 0.05)",
+                        color: "#333",
+                      },
+                    }}
+                  />
+                </TooltipHost>
+              </div>
             </div>
           </div>
           {filteredStack && filteredStack.length > 0 && (
@@ -357,6 +416,7 @@ class DevTools extends React.Component {
                     request={request}
                     lightUrl={true}
                     snippetLanguage={this.state.snippetLanguage}
+                    showApiTranslation={this.state.showApiTranslation}
                   ></CodeView>
                 </div>
               ))}
