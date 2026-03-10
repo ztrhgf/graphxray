@@ -1,196 +1,97 @@
-# Graph X-Ray: See the Code Behind the Clicks
+# Microsoft X-Ray
 
-| Microsoft Edge | Google Chrome |
-|-|-|
-| [![Microsoft Edge Add-ons](https://img.shields.io/badge/Microsoft_Edge-Install_Graph_X--Ray-0078d4?style=for-the-badge&logo=microsoft-edge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/graph-xray/oplgganppgjhpihgciiifejplnnpodak) | [![Chrome Web Store](https://img.shields.io/badge/Google_Chrome-Install_Graph_X--Ray-4285f4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://chrome.google.com/webstore/detail/graph-x-ray/gdhbldfajbedclijgcmmmobdbnjhnpdh) |
-|![Edge Web Store Users](https://img.shields.io/badge/Microsoft_Edge_--_Users-10k-gray?style=social&color=purple) ![Edge Web Store Stars](https://img.shields.io/chrome-web-store/stars/gdhbldfajbedclijgcmmmobdbnjhnpdh?style=social&label=Microsoft%20Edge%20-%20Rating&color=purple) | ![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/gdhbldfajbedclijgcmmmobdbnjhnpdh?style=social&label=Chrome%20-%20Users&color=purple) ![Chrome Web Store Stars](https://img.shields.io/chrome-web-store/stars/gdhbldfajbedclijgcmmmobdbnjhnpdh?style=social&label=Chrome%20-%20Rating&color=purple) |
+(this is modified version of the Merill`s Graph X-Ray extension https://github.com/merill/graphxray)
 
-Unlock the power of automation and learning in the Microsoft 365 ecosystem. Graph X-Ray is a developer tool that demystifies the Microsoft admin portals by revealing the exact Microsoft Graph API calls being made in the background as you work.
+Microsoft X-Ray is a browser DevTools extension for learning and automating Microsoft Graph and related admin portal API traffic. It captures requests made by the current tab, shows request and response details, and can generate command/code snippets for supported languages.
 
-Stop spending hours digging through documentation to figure out how to automate a task. Simply perform the action in the portal, and Graph X-Ray will provide you with the corresponding, ready-to-use script. It's the ultimate "learn by doing" tool for Microsoft Graph.
+![Microsoft X-Ray demo](./public/img/tutorial/graphxraydemo.gif)
 
-![Demo of opening Graph X-Ray panel](./public/img/tutorial/graphxraydemo.gif)
+## Installation (Local Build Only)
 
-## Key Features
+Microsoft X-Ray is currently installed by building it locally with npm and loading the unpacked extension in your browser developer settings.
 
-- **API Call Inspection**: Capture and inspect all Microsoft Graph API requests (GET, POST, PATCH, DELETE) and their full responses directly within your browser's developer tools.
+### Prerequisites
 
-- **Instant Script Generation**: Automatically convert recorded API calls into functional code snippets.
-
-- **Multi-Language Support**: Generate scripts in the most popular languages for M365 automation, including:
-
-  - Microsoft Graph PowerShell
-  - Python
-  - C#
-  - JavaScript
-  - Go
-  - Java
-  - Objective-C
-
-- **Accelerate Automation**: Go from a manual, repetitive task in the UI to a fully automated script in seconds.
-
-## Who is this for?
-
-- **Microsoft 365 Administrators** wanting to automate user management, policy configuration, and reporting.
-
-- **DevOps Engineers** building CI/CD pipelines for Microsoft 365 and Azure environments.
-
-- **Developers** creating applications that integrate with Microsoft Graph.
-
-- **IT Consultants & Support Professionals** who need to quickly script solutions for clients.
-
-Supercharge your Microsoft 365 workflow. Install Graph X-Ray today and turn your clicks into code!
-
-## Install
-
-Install the Graph X-Ray extension for your favorite browser.
-
-| Microsoft Edge | Google Chrome |
-|-|-|
-| [![Microsoft Edge Add-ons](https://img.shields.io/badge/Microsoft_Edge-Install_Graph_X--Ray-0078d4?style=for-the-badge&logo=microsoft-edge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/graph-xray/oplgganppgjhpihgciiifejplnnpodak) | [![Chrome Web Store](https://img.shields.io/badge/Google_Chrome-Install_Graph_X--Ray-4285f4?style=for-the-badge&logo=google-chrome&logoColor=white)](https://chrome.google.com/webstore/detail/graph-x-ray/gdhbldfajbedclijgcmmmobdbnjhnpdh) |
-|![Edge Web Store Users](https://img.shields.io/badge/Microsoft_Edge_--_Users-10k-gray?style=social&color=purple) ![Edge Web Store Stars](https://img.shields.io/chrome-web-store/stars/gdhbldfajbedclijgcmmmobdbnjhnpdh?style=social&label=Microsoft%20Edge%20-%20Rating&color=purple) | ![Chrome Web Store Users](https://img.shields.io/chrome-web-store/users/gdhbldfajbedclijgcmmmobdbnjhnpdh?style=social&label=Chrome%20-%20Users&color=purple) ![Chrome Web Store Stars](https://img.shields.io/chrome-web-store/stars/gdhbldfajbedclijgcmmmobdbnjhnpdh?style=social&label=Chrome%20-%20Rating&color=purple) |
-
-### Manual Install
-
-To manually install the Graph X-Ray extension, download the latest release from the [GitHub Releases page](https://github.com/merill/graphxray/releases) and follow the instructions for your browser.
-
-- Download the latest `.zip` file from the [Releases page](https://github.com/merill/graphxray/releases).
-- Extract the contents of the `.zip` file.
-- Open your browser and navigate to
-  - Microsoft Edge: `edge://extensions`
-  - Google Chrome: `chrome://extensions`
-- Enable "Developer mode" by toggling the switch (usually in the bottom left or top right corner).
-- Click on "Load unpacked" and select the extracted folder.
-
-## Supported Microsoft Graph Endpoints
-
-The extension detects and generates code snippets for Microsoft Graph calls across:
-
-- **graph.microsoft.com** (Public cloud)
-- **graph.microsoft.us** (US Government cloud - GCC High)
-- **dod-graph.microsoft.us** (US Department of Defense)
-- **microsoftgraph.chinacloudapi.cn** (China cloud)
-
-## Supported Microsoft Admin Portal Environments
-
-The extension works with any web page that makes Graph API calls. We've primarily tested with
-
-- Microsoft Entra
-- Microsoft Intune
-
-If there are admin portals where you are not seeing Graph X-Ray work as expected, please open an [issue](https://github.com/merill/graphxray/issues), even better, submit a pull request by following the steps in [Adding non-Graph API calls to Ultra X-Ray](#adding-non-graph-api-calls-to-ultra-x-ray).
-
-## Using Graph X-Ray
-
-### Viewing the Graph call stack trace
-
-To view Graph calls in real-time:
-
-- Browse to the **Microsoft admin portal (Entra, Intune...)**
-- Open **Developer Tools**
-- Open the **Graph X-Ray panel** in Developer Tools
-- Make changes in the portal to record and view the corresponding Graph API calls and PowerShell commands
-
-![Demo of opening Graph X-Ray panel](./public/img/tutorial/graphxraydemo.gif)
-
-### Step by step guide
-
-#### Open Developer Tools
-
-##### Using the keyboard
-
-- Press **F12** on Windows
-- Press **Cmd+Opt+I** on macOS
-
-##### Using the menu
-
-- On Microsoft Edge open the menu from the top right then select **Extensions**
-- On Google Chrome open the menu from the top right then select **More Tools** and click **Extensions**
-
-![Screenshot of selecting Developer Tools in Edge](./public/img/tutorial/Tutorial-1.png)
-
-#### Open the Graph X-Ray panel
-
-Expand the tabs in Developer Tools and select the Graph X-Ray panel.
-
-If you don't see the Graph X-Ray panel you may need to restart your browser.
-
-![Screenshot of opening Graph X-Ray pane](./public/img/tutorial/Tutorial-2.png)
-
-#### View Graph call stack trace
-
-Make changes in the Azure Portal to view the corresponding Graph API calls and PowerShell commands for the action (e.g. edit a user's profile information and click Save).
-
-Scroll down in the Graph X-Ray panel to view the new stack trace.
-
-![Screenshot of viewing graph changes](./public/img/tutorial/Tutorial-3.png)
-
-## Developer Guide
-
-### Pre-requisites
-
-- Install [Node.js](https://nodejs.org/) (which includes npm)
-- Run `npm install` to install dependencies
-
-### Develop in a VS Code Dev Container
-
-If you are using the VS Code Dev Containers feature, reopen the repository in the container from the Command Palette. The container installs dependencies with `npm ci` on first create, keeps `node_modules` in a named Docker volume so Linux container artifacts do not pollute the Windows checkout, and forwards the webpack dev server port automatically.
-
-Run `npm start` inside the container to compile and debug. The development server listens on `http://localhost:4000`.
+- Node.js (includes npm)
 
 ### Build the extension
+(in cloned repository root)
+1. Install dependencies:
 
-`npm start` to compile and debug
+```bash
+npm install
+```
 
-To load the extension, go to chrome://extensions or edge://extensions, turn on developer mode, click on "load unpacked", and navigate to the ./dev folder.
+2. Create a production build:
 
-### Production build
+```bash
+npm run build
+```
 
-Production builds are automatically created in GitHub with the right version number.
+3. Build output is generated in:
 
-If you want to create a production build of the extension on your desktop, run `npm run build`.
+- `build/graphxray`
 
-The build artifacts will be placed in the `build` folder.
+### Load into browser (Developer Mode)
 
-## Available Scripts
+1. Open extensions page:
+- Edge: `edge://extensions`
+- Chrome: `chrome://extensions`
+2. Enable Developer mode.
+3. Click Load unpacked.
+4. Select the `build/graphxray` folder.
 
-In the project directory, you can run:
+## How Microsoft X-Ray Works
 
-### `npm start`
+Microsoft X-Ray listens to network requests in DevTools and stores request metadata for supported domains. It then renders each captured call in the Microsoft X-Ray panel.
 
-Runs the app in the development mode.\
-Open [http://localhost:4000](http://localhost:4000) to view it in the browser.
+### Domain capture modes
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- Default mode captures standard endpoints, including:
+  - `https://graph.microsoft.com`
+  - `https://graph.microsoft.us`
+  - `https://dod-graph.microsoft.us`
+  - `https://microsoftgraph.chinacloudapi.cn`
+  - `https://management.azure.com`
+- Ultra X-Ray mode (toggle) expands capture to additional undocumented/internal endpoints for exploration.
 
-### `npm run build`
+### HTTP method filtering
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Use the HTTP method dropdown in the DevTools panel to filter captured rows by method:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- `ALL`, `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Command translation behavior
 
-## Adding non-Graph API calls to Ultra X-Ray
+- By default, command translation is **off**.
+- Enable it with the **Translate to command** toggle.
+- When enabled, Microsoft X-Ray generates snippets in the selected language (PowerShell, Python, C#, JavaScript, Java, Objective-C, Go).
 
-Ultra X-Ray shows calls to non-Graph API endpoints. Unfortunately, we need to explicitly add each endpoint to the extension.
+### PowerShell translation fallback
 
-To add support for a new endpoint.
+For PowerShell snippets, Microsoft X-Ray first attempts to generate a command via the DevX snippet service. If generation fails (or if the call is from an Ultra X-Ray domain), it falls back to local command generation:
 
-1. **Figure out the API endpoint** - View the network requests in the browser's developer tools and find out the domain where the API is hosted.
-1. **Add domain to [domains.js](./src/common/domains.js)** - Add the new domain to the list of domains in the `domains.js` file.
-1. **Add domain to [manifest.json](./src/public/manifest.json)** - Note the manifest requires the / at the end of the domain.
-1. **Test the endpoint** - Make a request to the new blade and verify that it appears in Graph X-Ray.
+- `Invoke-MgGraphRequest` for Microsoft Graph endpoints
+- `Invoke-AzRestMethod` for Azure domain requests
+- `Invoke-RestMethod` with auth/content-type headers for other endpoints
 
-## Feedback and Support
+This ensures PowerShell output is still available when cloud snippet generation is unavailable.
 
-This is an independently developed application and is not endorsed or supported by Microsoft.
+### Batch request expansion
 
-Please share feedback and report issues on [Github](https://github.com/merill/graphxray/issues).
+For supported batch endpoints (for example `/$batch`), Microsoft X-Ray attempts to:
 
-## Acknowledgements
+1. Parse the parent batch request body
+2. Parse the batch response
+3. Match sub-requests and sub-responses by ID
+4. Expand them into individual rows in the panel
 
-This project was originally a hackathon project by [Eunice](https://twitter.com/Eunixnho), Dhruv, Clement, [Monica](https://twitter.com/mumbihere)  & [@merill](https://twitter.com/merill).
+If parsing fails, Microsoft X-Ray falls back to showing the parent batch row.
+
+## Usage
+
+1. Open a Microsoft admin portal page.
+2. Open browser Developer Tools.
+3. Open the Microsoft X-Ray tab.
+4. Perform actions in the portal.
+5. Inspect captured requests, request/response bodies, and optional command translations.
