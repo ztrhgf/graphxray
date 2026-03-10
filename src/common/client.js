@@ -3,19 +3,74 @@ import { parseGraphUrl, GRAPH_DOMAINS, isUltraXRayDomain } from "./domains.js";
 const devxEndPoint =
   "https://devxapi-func-prod-eastus.azurewebsites.net/api/graphexplorersnippets";
 
+const getFallbackPowershellCmd = function (method, url, body) {
+  const upperMethod = (method || "GET").toUpperCase();
+  const bodyText = body ?? "";
+  const hasBody = bodyText.length > 0;
+  const escapedBody = bodyText.replace(/\r/g, "").replace(/`/g, "``");
+  const isGraphRequest = GRAPH_DOMAINS.STANDARD.some((domain) =>
+    url.includes(domain) && domain.includes("graph.microsoft")
+  );
+  let hostName = "";
+  try {
+    hostName = new URL(url).hostname;
+  } catch (error) {
+    hostName = "";
+  }
+  const isAzureDomain = hostName.endsWith(".azure.com");
+
+  const lines = [];
+
+  if (hasBody) {
+    lines.push("$body = @'");
+    lines.push(escapedBody);
+    lines.push("'@");
+    lines.push("");
+  }
+
+  if (isGraphRequest) {
+    let command = `Invoke-MgGraphRequest -Method ${upperMethod} -Uri "${url}"`;
+    if (hasBody) {
+      command += " -Body $body -ContentType \"application/json\"";
+    }
+    lines.push(command);
+  } else if (isAzureDomain) {
+    let command = `Invoke-AzRestMethod -Method ${upperMethod} -Uri "${url}"`;
+    if (hasBody) {
+      command += " -Payload $body";
+    }
+    lines.push(command);
+  } else {
+    lines.push("$headers = @{");
+    lines.push('  "Authorization" = "Bearer <token>"');
+    if (hasBody) {
+      lines.push('  "Content-Type" = "application/json"');
+    }
+    lines.push("}");
+    lines.push("");
+    let command = `Invoke-RestMethod -Method ${upperMethod} -Uri "${url}" -Headers $headers`;
+    if (hasBody) {
+      command += " -Body $body";
+    }
+    lines.push(command);
+  }
+
+  return lines.join("\n");
+};
+
 const getPowershellCmd = async function (snippetLanguage, method, url, body) {
   console.log("Get code snippet from DevX:", url, method);
   
-  // Check if the URL is from an Ultra X-Ray domain - if so, don't call devx
   if (isUltraXRayDomain(url)) {
     console.log("Skipping DevX call for Ultra X-Ray domain:", url);
-    return null;
+    return snippetLanguage === "powershell"
+      ? getFallbackPowershellCmd(method, url, body)
+      : null;
   }
   
-  const bodyText = body ?? ""; //Cast undefined and null to string
-  // Use the extracted parseGraphUrl function
+  const bodyText = body ?? "";
   const { path: parsedPath, host } = parseGraphUrl(url);
-  const path = encodeURI(parsedPath); //Replace the spaces in OData with + as expected by API
+  const path = encodeURI(parsedPath);
   const payload = `${method} ${path} HTTP/1.1\r\nHost: ${host}\r\nContent-Type: application/json\r\n\r\n${bodyText}`;
   console.log("Payload:", payload);
 
@@ -28,9 +83,9 @@ const getPowershellCmd = async function (snippetLanguage, method, url, body) {
   let devxSnippetUri = devxEndPoint;
   if (snippetLanguage === "c#") {
     devxSnippetUri = devxEndPoint;
-  } else if (["javascript", "java", "objective-c"].includes(snippetLanguage)) {
+  } else if (["javascript", "java", "objective-c", "powershell"].includes(snippetLanguage)) {
     devxSnippetUri = devxEndPoint + snippetParam;
-  } else if (["go", "powershell", "python"].includes(snippetLanguage)) {
+  } else if (["go", "python"].includes(snippetLanguage)) {
     devxSnippetUri = devxEndPoint + snippetParam + openApiParam;
   }
 
@@ -44,23 +99,27 @@ const getPowershellCmd = async function (snippetLanguage, method, url, body) {
     });
     console.log("DevX responded");
     if (response.ok) {
-      const resp = response.text();
-      console.log("DevX-Reponse", resp);
+      const resp = await response.text();
+      console.log("DevX-Response", resp);
       return resp;
-    } else {
-      const errorText = await response.text();
-      const errorMsg = `DevXError: ${response.status} ${response.statusText} for ${method} ${url} - Response: ${errorText}`;
-      console.log(errorMsg);
-      return null;
     }
+
+    const errorText = await response.text();
+    const errorMsg = `DevXError: ${response.status} ${response.statusText} for ${method} ${url} - Response: ${errorText}`;
+    console.log(errorMsg);
+    return snippetLanguage === "powershell"
+      ? getFallbackPowershellCmd(method, url, body)
+      : null;
   } catch (error) {
     const errorMsg = `DevXError: Network/Request error for ${method} ${url} - ${
       error.message || error
     }`;
     console.log(errorMsg, error);
+    return snippetLanguage === "powershell"
+      ? getFallbackPowershellCmd(method, url, body)
+      : null;
   }
 };
-
 const getRequestBody = async function (request) {
   let requestBody = "";
   
