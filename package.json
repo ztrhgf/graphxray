@@ -80,8 +80,8 @@
     "write-file-webpack-plugin": "4.5.1"
   },
   "scripts": {
-    "start": "NODE_OPTIONS=--openssl-legacy-provider node scripts/start.js",
-    "build": "NODE_OPTIONS=--openssl-legacy-provider node scripts/build.js",
+    "start": "node scripts/start.js",
+    "build": "node scripts/build.js",
     "test": "node scripts/test.js"
   },
   "eslintConfig": {

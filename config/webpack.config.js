@@ -378,7 +378,7 @@ module.exports = function (webpackEnv) {
                 // This is a feature of `babel-loader` for webpack (not Babel itself).
                 // It enables caching results in ./node_modules/.cache/babel-loader/
                 // directory for faster rebuilds.
-                cacheDirectory: true,
+                cacheDirectory: false,
                 // See #6846 for context on why cacheCompression is disabled
                 cacheCompression: false,
                 compact: isEnvProduction,
@@ -400,7 +400,7 @@ module.exports = function (webpackEnv) {
                     { helpers: true },
                   ],
                 ],
-                cacheDirectory: true,
+                cacheDirectory: false,
                 // See #6846 for context on why cacheCompression is disabled
                 cacheCompression: false,
                 
@@ -498,7 +498,7 @@ module.exports = function (webpackEnv) {
               // by webpacks internal loaders.
               exclude: [/\.(js|mjs|jsx|ts|tsx)$/, /\.html$/, /\.json$/],
               options: {
-                name: 'static/media/[name].[hash:8].[ext]',
+                name: 'static/media/[name].[sha256:hash:hex:8].[ext]',
               },
             },
             // ** STOP ** Are you adding a new loader?
