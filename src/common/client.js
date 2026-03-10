@@ -309,52 +309,92 @@ const parseBatchRequestResponse = function (requestBody, responseContent, parent
   try {
     const requestData = JSON.parse(requestBody);
     const responseData = JSON.parse(responseContent);
+    const requestItems = Array.isArray(requestData.requests)
+      ? requestData.requests
+      : Array.isArray(requestData.Requests)
+        ? requestData.Requests
+        : null;
+    const responseItems = Array.isArray(responseData.responses)
+      ? responseData.responses
+      : Array.isArray(responseData.Responses)
+        ? responseData.Responses
+        : Array.isArray(responseData.value)
+          ? responseData.value
+          : null;
 
-    if (!Array.isArray(requestData.requests) || !Array.isArray(responseData.responses)) {
+    if (!requestItems || !responseItems) {
       return null;
     }
 
+    const getItemId = (item) => {
+      if (!item) {
+        return null;
+      }
+
+      return item.id ?? item.requestId ?? item.name ?? item.contentId ?? null;
+    };
+
+    const getRequestMethod = (item) => {
+      return (item.method ?? item.httpMethod ?? item.request?.method ?? "GET").toUpperCase();
+    };
+
+    const getRequestUrl = (item) => {
+      return item.url ?? item.relativeUrl ?? item.path ?? item.request?.url ?? item.httpRequest?.url ?? "";
+    };
+
+    const stringifyBody = (value) => {
+      if (value === undefined || value === null || value === "") {
+        return "";
+      }
+
+      if (typeof value === "string") {
+        return value;
+      }
+
+      return JSON.stringify(value);
+    };
+
+    const getResponseStatus = (item) => {
+      return item.status ?? item.httpStatusCode ?? item.statusCode ?? item.httpResponse?.statusCode ?? null;
+    };
+
+    const getResponseBody = (item) => {
+      return stringifyBody(
+        item.body ??
+          item.content ??
+          item.responseBody ??
+          item.httpResponse?.body ??
+          item.httpResponse?.content
+      );
+    };
+
     const responseMap = new Map();
-    responseData.responses.forEach((response) => {
-      if (response && response.id) {
-        responseMap.set(String(response.id), response);
+    responseItems.forEach((response) => {
+      const responseId = getItemId(response);
+      if (responseId) {
+        responseMap.set(String(responseId), response);
       }
     });
 
     const matched = [];
-    requestData.requests.forEach((batchRequest) => {
-      if (!batchRequest || !batchRequest.id) {
+    requestItems.forEach((batchRequest) => {
+      const requestId = getItemId(batchRequest);
+      if (!requestId) {
         return;
       }
 
-      const response = responseMap.get(String(batchRequest.id));
+      const response = responseMap.get(String(requestId));
       if (!response) {
         return;
       }
 
-      let requestBodyText = "";
-      if (batchRequest.body !== undefined) {
-        requestBodyText =
-          typeof batchRequest.body === "string"
-            ? batchRequest.body
-            : JSON.stringify(batchRequest.body);
-      }
-
-      let responseBodyText = "";
-      if (response.body !== undefined) {
-        responseBodyText =
-          typeof response.body === "string"
-            ? response.body
-            : JSON.stringify(response.body);
-      }
-
       matched.push({
-        id: String(batchRequest.id),
-        method: (batchRequest.method || "GET").toUpperCase(),
-        url: batchRequest.url || "",
-        requestBody: requestBodyText,
-        responseStatus: response.status,
-        responseBody: responseBodyText,
+        id: String(requestId),
+        method: getRequestMethod(batchRequest),
+        url: getRequestUrl(batchRequest),
+        requestBody: stringifyBody(batchRequest.body ?? batchRequest.content ?? batchRequest.payload),
+        responseStatus: getResponseStatus(response),
+        responseBody: getResponseBody(response),
         parentBatchUrl: parentUrl,
       });
     });
@@ -391,34 +431,37 @@ const getBatchCodeSnippets = async function (snippetLanguage, requestBody, baseU
   
   try {
     const batchData = JSON.parse(requestBody);
-    if (!batchData.requests) {
-      return [];
-    }
-    
+    const requestItems = Array.isArray(batchData.requests)
+      ? batchData.requests
+      : Array.isArray(batchData.Requests)
+        ? batchData.Requests
+        : [];
+
     const codeSnippets = [];
     
-    for (const request of batchData.requests) {
-      console.log("Generating snippet for batch request:", request.id, request.method, request.url);
+    for (const request of requestItems) {
+      const requestId = request.id ?? request.requestId ?? request.name ?? "batch-item";
+      const requestMethod = (request.method ?? request.httpMethod ?? "GET").toUpperCase();
+      const requestUrl = request.url ?? request.relativeUrl ?? request.path ?? "";
+      console.log("Generating snippet for batch request:", requestId, requestMethod, requestUrl);
       
-      // Construct full URL for the individual request
-      const fullUrl = `${baseUrl}${request.url}`;
+      const fullUrl = resolveSubrequestUrl(baseUrl, requestUrl);
+      const requestBodyText = request.body || request.content
+        ? JSON.stringify(request.body ?? request.content)
+        : "";
       
-      // Get the body for this individual request
-      const requestBodyText = request.body ? JSON.stringify(request.body) : "";
-      
-      // Generate code snippet for this individual request
       const code = await getPowershellCmd(
         snippetLanguage,
-        request.method,
+        requestMethod,
         fullUrl,
         requestBodyText
       );
       
       if (code) {
         codeSnippets.push({
-          id: request.id,
-          method: request.method,
-          url: request.url,
+          id: requestId,
+          method: requestMethod,
+          url: requestUrl,
           code: code
         });
       }
@@ -450,11 +493,9 @@ const getCodeView = async function (snippetLanguage, request, version, harEntry 
   let batchCodeSnippets = [];
   
   // Check if this is a batch request
-  if (request.url.includes("/$batch")) {
+  if (isBatchEndpoint(request.url)) {
     console.log("Processing batch request for code generation");
-    // Extract base URL for batch requests
-    const baseUrl = request.url.split("/$batch")[0];
-    batchCodeSnippets = await getBatchCodeSnippets(snippetLanguage, requestBody, baseUrl);
+    batchCodeSnippets = await getBatchCodeSnippets(snippetLanguage, requestBody, request.url);
     
     // Also generate a code snippet for the main batch request
     code = await getPowershellCmd(
@@ -496,4 +537,5 @@ export {
   parseBatchRequestResponse,
   resolveSubrequestUrl,
 };
+
 
