@@ -190,6 +190,8 @@ module.exports = function (webpackEnv) {
       path: isEnvProduction ? paths.appBuild : paths.devAppBuild,
       // Add /* filename */ comments to generated require()s in the output.
       pathinfo: isEnvDevelopment,
+      // Avoid OpenSSL 3 md4 hashing issues on modern Node.
+      hashFunction: 'xxhash64',
       // No need to hash because extension updates are managed by the browser distributer
       filename: '[name].bundle.js',
       publicPath: '',
